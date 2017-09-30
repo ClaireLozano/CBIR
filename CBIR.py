@@ -4,11 +4,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 import imghdr
 from operator import itemgetter
+from math import *
 
 def load_images_from_folder(folder, initHistogram, originalImage):
 	# Le dictionnaire qui contiendra les differents nom des images ainsi que leur valeur 
-	dictionnary = {}
+	dictionnaryColorCompare = {}
+	dictionnaryTextureCompare = {}
 	imgInit = openImage(folder, originalImage)
+	matricesInit = compareTexture(imgInit)
+	initEnergie, initInertie, initEntropie, initMoment = resCooccurence(matricesInit)
+
+
 	for filename in os.listdir(folder):
 		print filename
 		img = openImage(folder, filename)
@@ -18,18 +24,23 @@ def load_images_from_folder(folder, initHistogram, originalImage):
 
             # Compare by color
 			value = compareColor(initHistogram, currentHist)
-			# Compare by texture
-			valueTexture = compareTexture(img)
+			# Put values in a dictionnary
+			dictionnaryColorCompare[filename] = value[0]
 
-		    # Put values in a dictionnary
-			dictionnary[filename] = value[0]
+			# Compare by texture
+			matrices = compareTexture(img)
+			energie, inertie, entropie, moment = resCooccurence(matrices)
+			resTexture = distanceCooccurence(initEnergie, initInertie, initEntropie, initMoment, energie, inertie, entropie, moment)
+			# print resTexture
+			# Put values in a dictionnary
+			dictionnaryTextureCompare[filename] = resTexture
 
             # Close img
 
     # Sort similarity table
 	tabKey = []		
 	tabValue = [] 
-	for key, value in sorted(dictionnary.iteritems(), key=lambda (k,v): (v,k)):
+	for key, value in sorted(dictionnaryColorCompare.iteritems(), key=lambda (k,v): (v,k)):
 		#print "%s: %s" % (key, value)
 		tabKey.append(key)
 		tabValue.append(value)
@@ -79,6 +90,7 @@ def compareTexture(currentImg):
 			newMatrice[p, q] = (currentGrayImg[p, q] * sizeCooccurrence ) // 256
 
 	# Create cooccurrence matrices
+	# Create cooccurrence matrices
 	cooccurrence1 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
 	cooccurrence2 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
 	cooccurrence3 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
@@ -122,8 +134,69 @@ def compareTexture(currentImg):
 					if(index == 3):
 						cooccurrence8[int(newMatrice[p, q]), int(newMatrice[p + dx, q + dy])] += 1
 		index += 1
-	
-	return 0
+
+	# Normalization of matrice
+	cooccurrence1 = cooccurrence1 / width*height
+	cooccurrence2 = cooccurrence2 / width*height
+	cooccurrence3 = cooccurrence3 / width*height
+	cooccurrence4 = cooccurrence4 / width*height
+	cooccurrence5 = cooccurrence5 / width*height
+	cooccurrence6 = cooccurrence6 / width*height
+	cooccurrence7 = cooccurrence7 / width*height
+	cooccurrence8 = cooccurrence8 / width*height
+
+	# Add to tab
+	tabCooccurence = []
+	tabCooccurence.append(cooccurrence1)
+	tabCooccurence.append(cooccurrence2)
+	tabCooccurence.append(cooccurrence3)
+	tabCooccurence.append(cooccurrence4)
+	tabCooccurence.append(cooccurrence5)
+	tabCooccurence.append(cooccurrence6)
+	tabCooccurence.append(cooccurrence7)
+	tabCooccurence.append(cooccurrence8)
+
+	return tabCooccurence
+
+def resCooccurence(currentCooccurence):
+	energie = 0
+	inertie = 0
+	entropie = 0
+	moment = 0
+	size = 8
+
+	# Energie
+	for matrice in currentCooccurence:
+		for i in range(0, size):
+			for j in range(0, size):
+				energie += matrice[i, j]**2 
+	# Inertie
+	for matrice in currentCooccurence:
+		for i in range(0, size):
+			for j in range(0, size):
+				inertie += (i-j)**2 * matrice[i, j]
+
+	# Entropie
+	for matrice in currentCooccurence:
+		for i in range(0, size):
+			for j in range(0, size):
+				entropie += - (matrice[i, j] * (np.log(matrice[i, j])))
+
+	# Moment differentiel inverse
+	for matrice in currentCooccurence:
+		for i in range(0, size):
+			for j in range(0, size):
+				moment += (1 / (1 + (matrice[i, j])**2)) * matrice[i, j]
+
+	# print energie
+	# print inertie
+	# print entropie
+	# print moment
+
+	return energie, inertie, entropie, moment
+
+def distanceCooccurence(initEnergie, initInertie, initEntropie, initMoment, energie, inertie, entropie, moment):
+	return (sqrt(((initEnergie-energie)**2) + ((initInertie-inertie)**2) + ((initEntropie-entropie)**2) + ((initMoment-moment)**2) )) / 4
 
 
 # Open original image
