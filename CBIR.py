@@ -190,7 +190,7 @@ def resCooccurence(currentCooccurence):
 
 	# print energie
 	# print inertie
-	# print entropie
+	print entropie
 	# print moment
 
 	return energie, inertie, entropie, moment
