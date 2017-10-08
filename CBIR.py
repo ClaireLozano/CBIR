@@ -191,7 +191,7 @@ def calculCooccurence(currentCooccurence):
 		for i in range(0, size):
 			for j in range(0, size):
 				if (matrice[i][j] != 0):
-					entropie += - (matrice[i, j] * (np.log(matrice[i, j])))
+					entropie -=  (matrice[i, j] * (np.log(matrice[i, j])))
 
 
 
@@ -203,7 +203,7 @@ def calculCooccurence(currentCooccurence):
 
 	# print energie
 	# print inertie
-	# print ('entropie',entropie)
+	print ('entropie',entropie)
 	# print moment
 
 	return energie, inertie, moment, entropie
