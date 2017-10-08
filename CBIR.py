@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 import imghdr
 from operator import itemgetter
 from math import *
+from skimage.filters.rank import entropy
+from skimage.morphology import disk
 
 def getImageDistance(folder, originalImage):
 	# Create dictionnary
@@ -185,10 +187,13 @@ def calculCooccurence(currentCooccurence):
 				inertie += (i-j)**2 * matrice[i, j]
 
 	# Entropie
-	# for matrice in currentCooccurence:
-	# 	for i in range(0, size):
-	# 		for j in range(0, size):
-	# 			entropie += - (matrice[i, j] * (np.log(matrice[i, j])))
+	for matrice in currentCooccurence:
+		for i in range(0, size):
+			for j in range(0, size):
+				if (matrice[i][j] != 0):
+					entropie += - (matrice[i, j] * (np.log(matrice[i, j])))
+
+
 
 	# Moment differentiel inverse
 	for matrice in currentCooccurence:
@@ -198,14 +203,14 @@ def calculCooccurence(currentCooccurence):
 
 	# print energie
 	# print inertie
-	# print entropie
+	# print ('entropie',entropie)
 	# print moment
 
 	return energie, inertie, moment, entropie
 
 # Calcul de distance de cooccurrence
 def distanceCooccurence(initEnergie, initInertie, initEntropie, initMoment, energie, inertie, entropie, moment):
-	return (sqrt(((initEnergie-energie)**2) + ((initInertie-inertie)**2) + ((initMoment-moment)**2) )) / 3 #4 + ((initEntropie-entropie)**2) 
+	return (sqrt(((initEnergie-energie)**2) + ((initInertie-inertie)**2) + ((initMoment-moment)**2) )) + ((initEntropie-entropie)**2)  / 3 
 
 # Get image name & get bdd
 imgPath = str(sys.argv[1])
