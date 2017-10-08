@@ -75,11 +75,19 @@ dictionnaryKey, dictionnaryValue = getImageDistance(CBIR_BDD, imgPath)
 # Print top 10 images
 print "Voici les images ressemblant le plus a l'image " + imgPath
 
-# Init
-topImage = 60
+# Init CBIR_BDD_2
+# python colorCBIR.py obj1__50.png CBIR_BDD_2
+# topImage = 60
+# objOK = 0
+# objTotalImageInBDD = 72
+# TotalImageInBDD = 7200
+
+# Init CBIR_BDD
+# python colorCBIR.py obj1__50.png CBIR_BDD
+topImage = 5
 objOK = 0
-objTotalImageInBDD = 72
-TotalImageInBDD = 7200
+objTotalImageInBDD = 5
+TotalImageInBDD = 15
 
 # Precision
 precision = 0

@@ -226,7 +226,7 @@ print "Voici les images ressemblant le plus a l'image " + imgPath
 
 # Init CBIR_BDD
 # python CBIR.py obj1__50.png CBIR_BDD
-topImage = 10
+topImage = 5
 objOK = 0
 objTotalImageInBDD = 5
 TotalImageInBDD = 15
