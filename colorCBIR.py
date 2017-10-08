@@ -90,7 +90,8 @@ for x in range(0, topImage):
 	if imgPath.split('__')[0] == nameObj[0]:
 		objOK += 1
 
-print "Image obj1 = " + str(objOK)
-print "Image retourne = " + str(topImage)
-print "Image total = 7200"
-print "Image de type obj1 = 72"
+print ""
+print "Image(s) retournee(s) correcte(s) = " + str(objOK)
+print "Images retournees = " + str(topImage)
+print "Image total =", TotalImageInBDD
+print "Nombre total d'image correcte(s) present dans la base de donnees =", objTotalImageInBDD

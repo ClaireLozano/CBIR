@@ -1,60 +1,68 @@
 import cv2
 import os
+import sys
 import numpy as np
 from matplotlib import pyplot as plt
 import imghdr
 from operator import itemgetter
 from math import *
 
-def load_images_from_folder(folder, initHistogram, originalImage):
-	# Le dictionnaire qui contiendra les differents nom des images ainsi que leur valeur 
+def getImageDistance(folder, originalImage):
+	# Create dictionnary
 	dictionnaryColorCompare = {}
 	dictionnaryTextureCompare = {}
+	# Get open initial image
 	imgInit = openImage(folder, originalImage)
-	matricesInit = compareTexture(imgInit)
-	initEnergie, initInertie, initEntropie, initMoment = resCooccurence(matricesInit)
-
+	# Get histogram initial image
+	initHistogram = getHistImage(imgInit) 
+	# Get matrice occurrence
+	matricesInit = getCooccurrence(imgInit)
+	initEnergie, initInertie, initEntropie, initMoment = calculCooccurence(matricesInit)
 
 	for filename in os.listdir(folder):
-		print filename
+		# Open image
 		img = openImage(folder, filename)
+		# If it's an image and not if it's not the initial image
 		if (imghdr.what(folder + "/" + filename) is not None) and (filename != originalImage):
 			# Get histogram
 			currentHist = getHistImage(img)
-
-            # Compare by color
+            # Compare botn images
 			value = compareColor(initHistogram, currentHist)
 			# Put values in a dictionnary
 			dictionnaryColorCompare[filename] = value[0]
 
 			# Compare by texture
-			matrices = compareTexture(img)
-			energie, inertie, entropie, moment = resCooccurence(matrices)
+			matrices = getCooccurrence(img)
+			energie, inertie, moment, entropie = calculCooccurence(matrices)
 			resTexture = distanceCooccurence(initEnergie, initInertie, initEntropie, initMoment, energie, inertie, entropie, moment)
-			# print resTexture
 			# Put values in a dictionnary
 			dictionnaryTextureCompare[filename] = resTexture
 
-            # Close img
+	finalDictionary = {}
+	# Sort similarity table
+	for key, value in dictionnaryColorCompare.items():
+		finalDictionary[key] = (value*0.5) + (dictionnaryTextureCompare[key]*0.5)
 
-    # Sort similarity table
 	tabKey = []		
 	tabValue = [] 
-	for key, value in sorted(dictionnaryColorCompare.iteritems(), key=lambda (k,v): (v,k)):
-		#print "%s: %s" % (key, value)
+	for key, value in sorted(finalDictionary.iteritems(), key=lambda (k,v): (v,k)):
 		tabKey.append(key)
 		tabValue.append(value)
+
 	return (tabKey, tabValue)
 
+# Return image opened
 def openImage(folder,filename):
 	return cv2.imread(os.path.join(folder,filename))
 
+# Return the 3 histogram RGB
 def getHistImage(img):
 	histBlue = cv2.calcHist([img],[0],None,[16],[0,256])
 	histGreen = cv2.calcHist([img],[1],None,[16],[0,256])
 	histRed = cv2.calcHist([img],[2],None,[16],[0,256])
 	return [histBlue, histGreen, histRed]
 
+# Compare two images
 def compareColor(initHistogram, currentHist):
 	dividende = 0
 	diviseur = 0
@@ -67,11 +75,12 @@ def compareColor(initHistogram, currentHist):
 			diviseur += initElement
 	return dividende/diviseur
 
+# Convert rgb img in gray
 def rgb2gray(rgb):
     return cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
 
-
-def compareTexture(currentImg):
+# Get cooccurrence 
+def getCooccurrence(currentImg):
 	# Convert to gray image 
 	currentGrayImg = rgb2gray(currentImg)
 
@@ -90,7 +99,6 @@ def compareTexture(currentImg):
 			newMatrice[p, q] = (currentGrayImg[p, q] * sizeCooccurrence ) // 256
 
 	# Create cooccurrence matrices
-	# Create cooccurrence matrices
 	cooccurrence1 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
 	cooccurrence2 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
 	cooccurrence3 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
@@ -99,7 +107,6 @@ def compareTexture(currentImg):
 	cooccurrence6 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
 	cooccurrence7 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
 	cooccurrence8 = np.zeros(shape=(sizeCooccurrence, sizeCooccurrence))
-
 
 	# Distance = 1 for all directions
 	direction = [[1,0],[1,1],[0,1],[-1,1]]
@@ -158,7 +165,8 @@ def compareTexture(currentImg):
 
 	return tabCooccurence
 
-def resCooccurence(currentCooccurence):
+# Calcul de l'energie, inertie, entropie et moment
+def calculCooccurence(currentCooccurence):
 	energie = 0
 	inertie = 0
 	entropie = 0
@@ -177,10 +185,10 @@ def resCooccurence(currentCooccurence):
 				inertie += (i-j)**2 * matrice[i, j]
 
 	# Entropie
-	for matrice in currentCooccurence:
-		for i in range(0, size):
-			for j in range(0, size):
-				entropie += - (matrice[i, j] * (np.log(matrice[i, j])))
+	# for matrice in currentCooccurence:
+	# 	for i in range(0, size):
+	# 		for j in range(0, size):
+	# 			entropie += - (matrice[i, j] * (np.log(matrice[i, j])))
 
 	# Moment differentiel inverse
 	for matrice in currentCooccurence:
@@ -190,27 +198,50 @@ def resCooccurence(currentCooccurence):
 
 	# print energie
 	# print inertie
-	print entropie
+	# print entropie
 	# print moment
 
-	return energie, inertie, entropie, moment
+	return energie, inertie, moment, entropie
 
+# Calcul de distance de cooccurrence
 def distanceCooccurence(initEnergie, initInertie, initEntropie, initMoment, energie, inertie, entropie, moment):
-	return (sqrt(((initEnergie-energie)**2) + ((initInertie-inertie)**2) + ((initEntropie-entropie)**2) + ((initMoment-moment)**2) )) / 4
+	return (sqrt(((initEnergie-energie)**2) + ((initInertie-inertie)**2) + ((initMoment-moment)**2) )) / 3 #4 + ((initEntropie-entropie)**2) 
 
+# Get image name & get bdd
+imgPath = str(sys.argv[1])
+CBIR_BDD = str(sys.argv[2])
 
-# Open original image
-imgPath = "CBIR_BDD/obj1__50.png"
-name = imgPath.split('/')
-img = openImage(name[0],name[1])
+# Get dictionnary of distance
+dictionnaryKey, dictionnaryValue = getImageDistance(CBIR_BDD, imgPath)
 
-# Get histogram
-initHistogram = getHistImage(img) 
-CBIR_BDD = "CBIR_BDD"
+# Print top 10 images
+print "Voici les images ressemblant le plus a l'image " + imgPath
 
-# Get dictionnary
-dictionnaryKey, dictionnaryValue = load_images_from_folder(CBIR_BDD, initHistogram, name[1])
+# Init CBIR_BDD_2
+# python CBIR.py obj1__50.png CBIR_BDD_2
+# topImage = 60
+# objOK = 0
+# objTotalImageInBDD = 72
+# TotalImageInBDD = 7200
 
-# Sorted dictionnary
-print(dictionnaryKey)
-#print(dictionnaryValue)
+# Init CBIR_BDD
+# python CBIR.py obj1__50.png CBIR_BDD
+topImage = 10
+objOK = 0
+objTotalImageInBDD = 5
+TotalImageInBDD = 15
+
+# Precision
+precision = 0
+
+for x in range(0, topImage):
+	print (str(dictionnaryKey[x]) + " : " + str(dictionnaryValue[x]))
+	nameObj = dictionnaryKey[x].split('__')
+	if imgPath.split('__')[0] == nameObj[0]:
+		objOK += 1
+
+print ""
+print "Image(s) retournee(s) correcte(s) = " + str(objOK)
+print "Images retournees = " + str(topImage)
+print "Image total =", TotalImageInBDD
+print "Nombre total d'image correcte(s) present dans la base de donnees =", objTotalImageInBDD
